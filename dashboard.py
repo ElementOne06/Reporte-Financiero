@@ -22,13 +22,13 @@ def cargar_archivo(ruta):
 # Cargar los datos
 @st.cache_data
 def cargar_datos():
-    # Rutas de los archivos
+    # Rutas de los archivos (ajustadas para estar en el mismo directorio)
     rutas = {
-    "FactJuneSale": "FactJuneSale.xlsx",
-    "DimCity": "DimCity.xlsx",
-    "DimDate": "DimDate.csv",
-    "DimStockItem": "DimStockItem.csv"
-}
+        "FactJuneSale": "FactJuneSale.xlsx",
+        "DimCity": "DimCity.xlsx",
+        "DimDate": "DimDate.csv",
+        "DimStockItem": "DimStockItem.csv"
+    }
 
     datos = {}
     for nombre, ruta in rutas.items():
