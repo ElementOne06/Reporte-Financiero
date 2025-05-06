@@ -19,17 +19,6 @@ def cargar_archivo(ruta):
         st.error(f"No se pudo acceder al archivo: {ruta}. Asegúrate de que no está abierto en otra aplicación.")
         raise e
 
-# Diccionario de coordenadas manuales
-coordenadas_manual = {
-    "Carson": (33.831674, -118.281693),
-    "Carson City": (39.163798, -119.767403),
-    "El Centro": (32.7920, -115.5631),
-    "El Cerrito": (37.9161, -122.3108),
-    "El Monte": (34.0736, -118.0291),
-    "Austin": (30.2672, -97.7431),
-    # Agrega más ciudades aquí...
-}
-
 # Cargar los datos
 @st.cache_data
 def cargar_datos():
@@ -38,40 +27,28 @@ def cargar_datos():
         "FactJuneSale": "FactJuneSale.xlsx",
         "DimCity": "DimCity.xlsx",
         "DimDate": "DimDate.csv",
-        "DimStockItem": "DimStockItem.csv"
+        "DimStockItem": "DimStockItem.csv",
+        "DimCity_Coordenadas": "DimCity_Coordenadas.csv"
     }
 
     datos = {}
-    for nombre, ruta in rutas.items():  # Corregido "en" por "in"
+    for nombre, ruta in rutas.items():
         if not os.path.exists(ruta):
             raise FileNotFoundError(f"El archivo {ruta} no se encuentra. Verifica las rutas.")
         datos[nombre] = cargar_archivo(ruta)
 
-    return datos["FactJuneSale"], datos["DimCity"], datos["DimDate"], datos["DimStockItem"]
+    return datos["FactJuneSale"], datos["DimCity"], datos["DimDate"], datos["DimStockItem"], datos["DimCity_Coordenadas"]
 
 # Intentar cargar los datos
 try:
-    fact, dim_city, dim_date, dim_stockitem = cargar_datos()
+    fact, dim_city, dim_date, dim_stockitem, dim_city_coordenadas = cargar_datos()
 except FileNotFoundError as e:
     st.error(str(e))
     st.stop()
 
-# Agregar coordenadas a DimCity si no existen
-coordenadas_guardadas = "DimCity_Coordenadas.csv"
-
-if os.path.exists(coordenadas_guardadas):
-    # Cargar coordenadas desde el archivo guardado
-    dim_city = pd.read_csv(coordenadas_guardadas)
-    st.info("Coordenadas cargadas desde el archivo guardado.")
-else:
-    # Asignar coordenadas manualmente
-    st.info("Asignando coordenadas manuales a las ciudades...")
-    dim_city["Latitude"] = dim_city["City"].map(lambda x: coordenadas_manual.get(x, (0, 0))[0])
-    dim_city["Longitude"] = dim_city["City"].map(lambda x: coordenadas_manual.get(x, (0, 0))[1])
-
-    # Guardar las coordenadas en un archivo
-    dim_city.to_csv(coordenadas_guardadas, index=False)
-    st.success("Coordenadas asignadas y guardadas en el archivo.")
+# Agregar coordenadas a DimCity desde el archivo DimCity_Coordenadas.csv
+dim_city_coordenadas["City"] = dim_city_coordenadas["City"].str.strip("'")  # Limpiar posibles caracteres extra
+dim_city = dim_city.merge(dim_city_coordenadas, on="City", how="left")
 
 # Limpiar y convertir columnas numéricas en cada tabla
 if "Recommended Retail Price" in dim_stockitem.columns:
@@ -106,7 +83,7 @@ st.header("Tasa Impositiva Por Ciudad (Mapa)")
 
 # Filtrar ciudades con coordenadas válidas
 fact_mapa = fact_filtrado.merge(dim_city, on="City Key", how="inner")
-fact_mapa = fact_mapa[(fact_mapa["Latitude"] != 0) & (fact_mapa["Longitude"] != 0)]
+fact_mapa = fact_mapa[(fact_mapa["Latitude"].notnull()) & (fact_mapa["Longitude"].notnull())]
 
 if fact_mapa.empty:
     st.error("No hay datos disponibles para mostrar en el mapa. Verifica los datos y los filtros.")
