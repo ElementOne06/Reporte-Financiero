@@ -59,11 +59,11 @@ fact = fact.merge(dim_city, left_on="City Key", right_on="City Key", how="left")
 fact = fact.merge(dim_date, left_on="Invoice Date Key", right_on="Date", how="left")
 
 # Convertir columnas numéricas
-fact["Quantity"] = pd.to_numeric(fact["Σ Quantity"], errors="coerce")
-fact["Unit Price"] = pd.to_numeric(fact["Σ Unit Price"], errors="coerce")
-fact["Profit"] = pd.to_numeric(fact["Σ Profit"], errors="coerce")
-fact["Tax Rate"] = pd.to_numeric(fact["Σ Tax Rate"], errors="coerce")
-fact["Tax Amount"] = pd.to_numeric(fact["Σ Tax Amount"], errors="coerce")
+fact["Quantity"] = pd.to_numeric(fact["Quantity"], errors="coerce")
+fact["Unit Price"] = pd.to_numeric(fact["Unit Price"], errors="coerce")
+fact["Profit"] = pd.to_numeric(fact["Profit"], errors="coerce")
+fact["Tax Rate"] = pd.to_numeric(fact["Tax Rate"], errors="coerce")
+fact["Tax Amount"] = pd.to_numeric(fact["Tax Amount"], errors="coerce")
 
 # KPIs
 promedio_cantidad = fact["Quantity"].mean()
