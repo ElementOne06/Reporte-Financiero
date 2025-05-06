@@ -20,9 +20,10 @@ def cargar_archivo(ruta):
         raise e
 
 # Cargar los datos
+# filepath: c:\Users\esteb\OneDrive\Documentos\Ingenieria Financiera\Semestre 2\Laboratorio de Visualizacion de Datos Financieros\Reporte-Python\dashboard.py
 @st.cache_data
 def cargar_datos():
-    # Rutas de los archivos (ajustadas para estar en el mismo directorio)
+    # Rutas de los archivos (ajustadas para estar en el mismo directorio raíz)
     rutas = {
         "FactJuneSale": "FactJuneSale.xlsx",
         "DimCity": "DimCity.xlsx",
