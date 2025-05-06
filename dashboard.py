@@ -2,8 +2,6 @@ import os
 import pandas as pd
 import streamlit as st
 import plotly.express as px
-from geopy.geocoders import Nominatim
-import time
 
 # Configuración de la página
 st.set_page_config(page_title="Análisis de Ventas", layout="wide")
@@ -21,17 +19,16 @@ def cargar_archivo(ruta):
         st.error(f"No se pudo acceder al archivo: {ruta}. Asegúrate de que no está abierto en otra aplicación.")
         raise e
 
-# Función para obtener coordenadas de una ciudad
-def obtener_coordenadas(ciudad, estado=None, pais="Mexico"):
-    geolocator = Nominatim(user_agent="geoapiExercises")
-    try:
-        location = geolocator.geocode(f"{ciudad}, {estado}, {pais}" if estado else f"{ciudad}, {pais}")
-        if location:
-            return location.latitude, location.longitude
-        else:
-            return None, None
-    except Exception as e:
-        return None, None
+# Diccionario de coordenadas manuales
+coordenadas_manual = {
+    "Carson": (33.831674, -118.281693),
+    "Carson City": (39.163798, -119.767403),
+    "El Centro": (32.7920, -115.5631),
+    "El Cerrito": (37.9161, -122.3108),
+    "El Monte": (34.0736, -118.0291),
+    "Austin": (30.2672, -97.7431),
+    # Agrega más ciudades aquí...
+}
 
 # Cargar los datos
 @st.cache_data
@@ -67,20 +64,14 @@ if os.path.exists(coordenadas_guardadas):
     dim_city = pd.read_csv(coordenadas_guardadas)
     st.info("Coordenadas cargadas desde el archivo guardado.")
 else:
-    # Calcular coordenadas si no existen
-    st.info("Obteniendo coordenadas para las ciudades...")
-    dim_city["Latitude"] = None
-    dim_city["Longitude"] = None
-
-    for index, row in dim_city.iterrows():
-        lat, lon = obtener_coordenadas(row["City"], row.get("State Province"))
-        dim_city.at[index, "Latitude"] = lat
-        dim_city.at[index, "Longitude"] = lon
-        time.sleep(1)  # Esperar 1 segundo entre solicitudes para evitar bloqueos
+    # Asignar coordenadas manualmente
+    st.info("Asignando coordenadas manuales a las ciudades...")
+    dim_city["Latitude"] = dim_city["City"].map(lambda x: coordenadas_manual.get(x, (None, None))[0])
+    dim_city["Longitude"] = dim_city["City"].map(lambda x: coordenadas_manual.get(x, (None, None))[1])
 
     # Guardar las coordenadas en un archivo
     dim_city.to_csv(coordenadas_guardadas, index=False)
-    st.success("Coordenadas calculadas y guardadas en el archivo.")
+    st.success("Coordenadas asignadas y guardadas en el archivo.")
 
 # Limpiar y convertir columnas numéricas en cada tabla
 if "Recommended Retail Price" in dim_stockitem.columns:

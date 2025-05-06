@@ -2,5 +2,3 @@ pandas
 streamlit
 plotly
 openpyxl
-geopy.geocoders
-time
