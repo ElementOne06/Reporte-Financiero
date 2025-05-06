@@ -20,10 +20,9 @@ def cargar_archivo(ruta):
         raise e
 
 # Cargar los datos
-# filepath: c:\Users\esteb\OneDrive\Documentos\Ingenieria Financiera\Semestre 2\Laboratorio de Visualizacion de Datos Financieros\Reporte-Python\dashboard.py
 @st.cache_data
 def cargar_datos():
-    # Rutas de los archivos (ajustadas para estar en el mismo directorio raíz)
+    # Rutas de los archivos
     rutas = {
         "FactJuneSale": "FactJuneSale.xlsx",
         "DimCity": "DimCity.xlsx",
@@ -58,35 +57,27 @@ if "Invoice Date Key" not in fact.columns or "Date" not in dim_date.columns:
 # Unir tablas
 fact = fact.merge(dim_city, left_on="City Key", right_on="City Key", how="left")
 fact = fact.merge(dim_date, left_on="Invoice Date Key", right_on="Date", how="left")
-fact = fact.merge(dim_stockitem, left_on="Stock Item Key", right_on="Stock Item Key", how="left")  # Unión con DimStockItem
+fact = fact.merge(dim_stockitem, left_on="Stock Item Key", right_on="Stock Item Key", how="left")
+
+# Verificar las columnas disponibles
+st.write("Columnas disponibles en el DataFrame 'fact':", fact.columns)
 
 # Limpiar y convertir la columna 'Recommended Retail Price' a numérica
-fact["Recommended Retail Price"] = fact["Recommended Retail Price"].str.replace("?", "", regex=False).str.strip()
-fact["Recommended Retail Price"] = pd.to_numeric(fact["Recommended Retail Price"], errors="coerce")
+if "Recommended Retail Price" in fact.columns:
+    fact["Recommended Retail Price"] = fact["Recommended Retail Price"].str.replace("?", "", regex=False).str.strip()
+    fact["Recommended Retail Price"] = pd.to_numeric(fact["Recommended Retail Price"], errors="coerce")
 
 # Convertir otras columnas numéricas
-fact["Quantity"] = pd.to_numeric(fact["Quantity"], errors="coerce")
-fact["Unit Price"] = pd.to_numeric(fact["Unit Price"], errors="coerce")
-fact["Profit"] = pd.to_numeric(fact["Profit"], errors="coerce")
-fact["Tax Rate"] = pd.to_numeric(fact["Tax Rate"], errors="coerce")
-fact["Tax Amount"] = pd.to_numeric(fact["Tax Amount"], errors="coerce")  # Unión con DimStockItem
-
-st.header("Precio de Venta Por Año")
-fig_lineas = px.line(
-    fact_filtrado,
-    x="Calendar Year",
-    y="Recommended Retail Price",
-    title="Precio de Venta Por Año",
-    markers=True
-)
-st.plotly_chart(fig_lineas)
-
-# KPIs
-promedio_cantidad = fact["Quantity"].mean()
-promedio_precio_unitario = fact["Unit Price"].mean()
-total_precio_unitario = fact["Unit Price"].sum()
-promedio_precio_unitario_por_cantidad = (fact["Unit Price"] * fact["Quantity"]).mean()
-total_precio_unitario_por_cantidad = (fact["Unit Price"] * fact["Quantity"]).sum()
+if "Quantity" in fact.columns:
+    fact["Quantity"] = pd.to_numeric(fact["Quantity"], errors="coerce")
+if "Unit Price" in fact.columns:
+    fact["Unit Price"] = pd.to_numeric(fact["Unit Price"], errors="coerce")
+if "Profit" in fact.columns:
+    fact["Profit"] = pd.to_numeric(fact["Profit"], errors="coerce")
+if "Tax Rate" in fact.columns:
+    fact["Tax Rate"] = pd.to_numeric(fact["Tax Rate"], errors="coerce")
+if "Tax Amount" in fact.columns:
+    fact["Tax Amount"] = pd.to_numeric(fact["Tax Amount"], errors="coerce")
 
 # Sidebar - Segmentadores
 st.sidebar.header("Segmentadores")
@@ -163,6 +154,12 @@ fig_barras_agrupadas = px.bar(
 st.plotly_chart(fig_barras_agrupadas)
 
 # KPIs en Tarjetas
+promedio_cantidad = fact["Quantity"].mean()
+promedio_precio_unitario = fact["Unit Price"].mean()
+total_precio_unitario = fact["Unit Price"].sum()
+promedio_precio_unitario_por_cantidad = (fact["Unit Price"] * fact["Quantity"]).mean()
+total_precio_unitario_por_cantidad = (fact["Unit Price"] * fact["Quantity"]).sum()
+
 st.metric(label="Promedio de Cantidad", value=round(promedio_cantidad, 2))
 st.metric(label="Promedio del Precio Unitario", value=round(promedio_precio_unitario, 2))
 st.metric(label="Total de Precio Unitario", value=round(total_precio_unitario, 2))
