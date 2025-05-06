@@ -58,13 +58,28 @@ if "Invoice Date Key" not in fact.columns or "Date" not in dim_date.columns:
 # Unir tablas
 fact = fact.merge(dim_city, left_on="City Key", right_on="City Key", how="left")
 fact = fact.merge(dim_date, left_on="Invoice Date Key", right_on="Date", how="left")
+fact = fact.merge(dim_stockitem, left_on="Stock Item Key", right_on="Stock Item Key", how="left")  # Unión con DimStockItem
 
-# Convertir columnas numéricas
+# Limpiar y convertir la columna 'Recommended Retail Price' a numérica
+fact["Recommended Retail Price"] = fact["Recommended Retail Price"].str.replace("?", "", regex=False).str.strip()
+fact["Recommended Retail Price"] = pd.to_numeric(fact["Recommended Retail Price"], errors="coerce")
+
+# Convertir otras columnas numéricas
 fact["Quantity"] = pd.to_numeric(fact["Quantity"], errors="coerce")
 fact["Unit Price"] = pd.to_numeric(fact["Unit Price"], errors="coerce")
 fact["Profit"] = pd.to_numeric(fact["Profit"], errors="coerce")
 fact["Tax Rate"] = pd.to_numeric(fact["Tax Rate"], errors="coerce")
-fact["Tax Amount"] = pd.to_numeric(fact["Tax Amount"], errors="coerce")
+fact["Tax Amount"] = pd.to_numeric(fact["Tax Amount"], errors="coerce")  # Unión con DimStockItem
+
+st.header("Precio de Venta Por Año")
+fig_lineas = px.line(
+    fact_filtrado,
+    x="Calendar Year",
+    y="Recommended Retail Price",
+    title="Precio de Venta Por Año",
+    markers=True
+)
+st.plotly_chart(fig_lineas)
 
 # KPIs
 promedio_cantidad = fact["Quantity"].mean()
