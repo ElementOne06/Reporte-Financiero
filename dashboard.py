@@ -62,10 +62,30 @@ fact = fact.merge(dim_stockitem, left_on="Stock Item Key", right_on="Stock Item 
 # Verificar las columnas disponibles
 st.write("Columnas disponibles en el DataFrame 'fact':", fact.columns)
 
+# Verificar los primeros registros del DataFrame
+st.write("Primeros registros del DataFrame 'fact':")
+st.write(fact.head())
+
 # Limpiar y convertir la columna 'Recommended Retail Price' a numérica
 if "Recommended Retail Price" in fact.columns:
     fact["Recommended Retail Price"] = fact["Recommended Retail Price"].str.replace("?", "", regex=False).str.strip()
     fact["Recommended Retail Price"] = pd.to_numeric(fact["Recommended Retail Price"], errors="coerce")
+
+# Gráfico de líneas
+st.header("Precio de Venta Por Año")
+
+# Verificar los datos utilizados en el gráfico de líneas
+st.write("Datos para el gráfico de líneas:")
+st.write(fact_filtrado[["Calendar Year", "Recommended Retail Price"]].dropna())
+
+fig_lineas = px.line(
+    fact_filtrado,
+    x="Calendar Year",
+    y="Recommended Retail Price",
+    title="Precio de Venta Por Año",
+    markers=True
+)
+st.plotly_chart(fig_lineas)
 
 # Convertir otras columnas numéricas
 if "Quantity" in fact.columns:
