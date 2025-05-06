@@ -24,11 +24,11 @@ def cargar_archivo(ruta):
 def cargar_datos():
     # Rutas de los archivos
     rutas = {
-        "FactJuneSale": "Archivos - Streamlit/FactJuneSale.xlsx",
-        "DimCity": "Archivos - Streamlit/DimCity.xlsx",
-        "DimDate": "Archivos - Streamlit/DimDate.csv",
-        "DimStockItem": "Archivos - Streamlit/DimStockItem.csv"
-    }
+    "FactJuneSale": "FactJuneSale.xlsx",
+    "DimCity": "DimCity.xlsx",
+    "DimDate": "DimDate.csv",
+    "DimStockItem": "DimStockItem.csv"
+}
 
     datos = {}
     for nombre, ruta in rutas.items():
