@@ -3,15 +3,16 @@ import pandas as pd
 import streamlit as st
 import plotly.express as px
 
+# Configuración de la página
+st.set_page_config(page_title="Análisis de Ventas", layout="wide")
+
 # Función para cargar archivos según su extensión
 def cargar_archivo(ruta):
     try:
         if ruta.endswith(".xlsx"):
-            df = pd.read_excel(ruta, dtype=str, header=0)  # Forzar la primera fila como encabezado
-            return df
+            return pd.read_excel(ruta, dtype=str, header=0)
         elif ruta.endswith(".csv"):
-            df = pd.read_csv(ruta, dtype=str, header=0)  # Forzar la primera fila como encabezado
-            return df
+            return pd.read_csv(ruta, dtype=str, header=0)
         else:
             raise ValueError(f"Formato de archivo no soportado: {ruta}")
     except PermissionError as e:
@@ -22,45 +23,29 @@ def cargar_archivo(ruta):
 @st.cache_data
 def cargar_datos():
     # Rutas de los archivos
-    ruta_fact = r"C:\Users\esteb\OneDrive\Documentos\Ingenieria Financiera\Semestre 2\Laboratorio de Visualizacion de Datos Financieros\Archivos - Streamlit\FactJuneSale.xlsx"
-    ruta_dimcity = r"C:\Users\esteb\OneDrive\Documentos\Ingenieria Financiera\Semestre 2\Laboratorio de Visualizacion de Datos Financieros\Archivos - Streamlit\DimCity.xlsx"
-    ruta_dimdate = r"C:\Users\esteb\OneDrive\Documentos\Ingenieria Financiera\Semestre 2\Laboratorio de Visualizacion de Datos Financieros\Archivos - Streamlit\DimDate.csv"
-    ruta_dimstockitem = r"C:\Users\esteb\OneDrive\Documentos\Ingenieria Financiera\Semestre 2\Laboratorio de Visualizacion de Datos Financieros\Archivos - Streamlit\DimStockItem.csv"
-
-    # Verificar existencia de los archivos y cargarlos
-    archivos = {
-        "FactJuneSale": ruta_fact,
-        "DimCity": ruta_dimcity,
-        "DimDate": ruta_dimdate,
-        "DimStockItem": ruta_dimstockitem
+    rutas = {
+        "FactJuneSale": "Archivos - Streamlit/FactJuneSale.xlsx",
+        "DimCity": "Archivos - Streamlit/DimCity.xlsx",
+        "DimDate": "Archivos - Streamlit/DimDate.csv",
+        "DimStockItem": "Archivos - Streamlit/DimStockItem.csv"
     }
-    
+
     datos = {}
-    for nombre, ruta in archivos.items():
+    for nombre, ruta in rutas.items():
         if not os.path.exists(ruta):
-            # Mostrar archivos disponibles en la carpeta
-            carpeta = os.path.dirname(ruta)
-            archivos_disponibles = os.listdir(carpeta)
-            raise FileNotFoundError(
-                f"El archivo no se encuentra: {ruta}\n"
-                f"Archivos disponibles en la carpeta:\n{archivos_disponibles}"
-            )
+            raise FileNotFoundError(f"El archivo {ruta} no se encuentra. Verifica las rutas.")
         datos[nombre] = cargar_archivo(ruta)
 
     return datos["FactJuneSale"], datos["DimCity"], datos["DimDate"], datos["DimStockItem"]
 
-# Cargar los datos
+# Intentar cargar los datos
 try:
     fact, dim_city, dim_date, dim_stockitem = cargar_datos()
 except FileNotFoundError as e:
     st.error(str(e))
     st.stop()
 
-# Depuración: Verificar columnas
-st.write("Columnas en 'FactJuneSale':", fact.columns.tolist())
-st.write("Columnas en 'DimCity':", dim_city.columns.tolist())
-
-# Verificar si las columnas necesarias están presentes
+# Verificar columnas necesarias
 if "City Key" not in fact.columns or "City Key" not in dim_city.columns:
     st.error("La columna 'City Key' no existe en uno de los DataFrames. Verifica los nombres de las columnas.")
     st.stop()
@@ -69,30 +54,23 @@ if "Invoice Date Key" not in fact.columns or "Date" not in dim_date.columns:
     st.error("La columna 'Invoice Date Key' o 'Date' no existe en uno de los DataFrames. Verifica los nombres de las columnas.")
     st.stop()
 
-# Unir tablas (si es necesario para gráficos)
+# Unir tablas
 fact = fact.merge(dim_city, left_on="City Key", right_on="City Key", how="left")
 fact = fact.merge(dim_date, left_on="Invoice Date Key", right_on="Date", how="left")
 
-# Convertir columnas numéricas a tipo adecuado
-fact["Quantity"] = pd.to_numeric(fact["Quantity"], errors="coerce")
-fact["Unit Price"] = pd.to_numeric(fact["Unit Price"], errors="coerce")
-fact["Tax Rate"] = pd.to_numeric(fact["Tax Rate"], errors="coerce")
-
-# Manejar la columna 'Recommended Retail Price'
-if "Recommended Retail Price" in fact.columns:
-    # Eliminar el símbolo '?' y convertir a tipo numérico
-    fact["Recommended Retail Price"] = fact["Recommended Retail Price"].str.replace("?", "", regex=False)
-    fact["Recommended Retail Price"] = pd.to_numeric(fact["Recommended Retail Price"], errors="coerce")
-else:
-    st.warning("La columna 'Recommended Retail Price' no existe en los datos. Se creará con valores predeterminados de 0.")
-    fact["Recommended Retail Price"] = 0
+# Convertir columnas numéricas
+fact["Quantity"] = pd.to_numeric(fact["Σ Quantity"], errors="coerce")
+fact["Unit Price"] = pd.to_numeric(fact["Σ Unit Price"], errors="coerce")
+fact["Profit"] = pd.to_numeric(fact["Σ Profit"], errors="coerce")
+fact["Tax Rate"] = pd.to_numeric(fact["Σ Tax Rate"], errors="coerce")
+fact["Tax Amount"] = pd.to_numeric(fact["Σ Tax Amount"], errors="coerce")
 
 # KPIs
-promedio_cantidad = fact["Quantity"].mean(skipna=True)
-promedio_precio_unitario = fact["Unit Price"].mean(skipna=True)
-total_precio_unitario = fact["Unit Price"].sum(skipna=True)
-promedio_precio_unitario_por_cantidad = (fact["Unit Price"] * fact["Quantity"]).mean(skipna=True)
-total_precio_unitario_por_cantidad = (fact["Unit Price"] * fact["Quantity"]).sum(skipna=True)
+promedio_cantidad = fact["Quantity"].mean()
+promedio_precio_unitario = fact["Unit Price"].mean()
+total_precio_unitario = fact["Unit Price"].sum()
+promedio_precio_unitario_por_cantidad = (fact["Unit Price"] * fact["Quantity"]).mean()
+total_precio_unitario_por_cantidad = (fact["Unit Price"] * fact["Quantity"]).sum()
 
 # Sidebar - Segmentadores
 st.sidebar.header("Segmentadores")
@@ -112,7 +90,7 @@ fact_filtrado = fact[
 # Título principal
 st.title("Análisis de Ventas")
 
-# Gráficos y KPIs
+# Gráficos
 st.header("Total de Tasa Impositiva Por Ciudad")
 fig_burbujas = px.scatter(
     fact_filtrado,
@@ -147,7 +125,6 @@ fig_anillos = px.pie(
 )
 st.plotly_chart(fig_anillos)
 
-# Gráfico de líneas (verificar columna)
 st.header("Precio de Venta Por Año")
 fig_lineas = px.line(
     fact_filtrado,
