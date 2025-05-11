@@ -47,17 +47,11 @@ except FileNotFoundError as e:
 
 # Limpiar y convertir la columna "Recommended Retail Price" en dim_stockitem
 if "Recommended Retail Price" in dim_stockitem.columns:
-    # Convertir la columna a string para evitar errores con .str
     dim_stockitem["Recommended Retail Price"] = dim_stockitem["Recommended Retail Price"].astype(str)
-    # Eliminar el símbolo de pregunta y espacios en blanco
     dim_stockitem["Recommended Retail Price"] = dim_stockitem["Recommended Retail Price"].str.replace("?", "", regex=False).str.strip()
-    # Reemplazar comas por puntos para manejar decimales
     dim_stockitem["Recommended Retail Price"] = dim_stockitem["Recommended Retail Price"].str.replace(",", ".", regex=False)
-    # Reemplazar valores no numéricos como "-" con NaN
     dim_stockitem["Recommended Retail Price"] = dim_stockitem["Recommended Retail Price"].replace("-", None)
-    # Convertir la columna a numérico, manejando errores
     dim_stockitem["Recommended Retail Price"] = pd.to_numeric(dim_stockitem["Recommended Retail Price"], errors="coerce")
-
 
 columnas_numericas_fact = ["Quantity", "Unit Price", "Profit", "Tax Rate", "Tax Amount"]
 for columna in columnas_numericas_fact:
@@ -68,7 +62,6 @@ for columna in columnas_numericas_fact:
 st.sidebar.header("Segmentadores")
 filtro_provincia = st.sidebar.multiselect("Provincia del Estado:", options=dim_city["State Province"].unique(), default=dim_city["State Province"].unique())
 
-# Lista de ciudades permitidas (extraídas de la imagen)
 ciudades_permitidas = [
     "Amanda Park", "Magalia", "Biggs Junction", "Cave Junction", "Jesmond Dene",
     "Glen Avon", "College Place", "Ridgemark", "Naches", "Lostine", "Kerby",
@@ -76,7 +69,6 @@ ciudades_permitidas = [
     "Lytle Creek", "Herlong", "Valley View Park"
 ]
 
-# Modificar el filtro de ciudad para incluir solo las ciudades permitidas
 filtro_ciudad = st.sidebar.multiselect(
     "Ciudad:",
     options=dim_city[dim_city["City"].isin(ciudades_permitidas)]["City"].unique(),
@@ -84,75 +76,18 @@ filtro_ciudad = st.sidebar.multiselect(
 )
 
 filtro_año_fiscal = st.sidebar.multiselect("Año Fiscal:", options=dim_date["Fiscal Year"].unique(), default=dim_date["Fiscal Year"].unique())
-filtro_mes_fiscal = st.sidebar.multiselect("Mes Fiscal:", options=dim_date["Fiscal Month Label"].unique(), default=dim_date["Fiscal Month Label"].unique())
+filtro_mes_fiscal = st.sidebar.multiselect("Mes Fiscal:", options=dim_date["Month"].unique(), default=dim_date["Month"].unique())
 
 # Aplicar filtros
 fact_filtrado = fact[
     (fact["City Key"].isin(dim_city[dim_city["State Province"].isin(filtro_provincia)]["City Key"])) &
     (fact["City Key"].isin(dim_city[dim_city["City"].isin(filtro_ciudad)]["City Key"])) &
     (fact["Invoice Date Key"].isin(dim_date[dim_date["Fiscal Year"].isin(filtro_año_fiscal)]["Date"])) &
-    (fact["Invoice Date Key"].isin(dim_date[dim_date["Fiscal Month Label"].isin(filtro_mes_fiscal)]["Date"]))
+    (fact["Invoice Date Key"].isin(dim_date[dim_date["Month"].isin(filtro_mes_fiscal)]["Date"]))
 ]
 
 # Título principal
 st.title("Análisis de Ventas")
-
-# Gráficos
-st.header("Total de Tasa Impositiva Por Ciudad")
-fig_burbujas = px.scatter(
-    fact_filtrado.merge(dim_city, on="City Key"),
-    x="City",
-    y="Tax Rate",
-    size="Tax Rate",
-    color="City",
-    title="Total de Tasa Impositiva Por Ciudad",
-    labels={"Tax Rate": "Tasa Impositiva", "City": "Ciudad"}
-)
-st.plotly_chart(fig_burbujas)
-
-st.header("Total de Profit Por Ciudad")
-fig_kpi = px.bar(
-    fact_filtrado.merge(dim_city, on="City Key"),
-    x="City",
-    y="Profit",
-    title="Total de Profit Por Ciudad",
-    labels={"Profit": "Profit", "City": "Ciudad"},
-    text="Profit",
-    color="City"
-)
-st.plotly_chart(fig_kpi)
-
-st.header("Monto del Impuesto Por Provincia del Estado")
-fig_anillos = px.pie(
-    fact_filtrado.merge(dim_city, on="City Key"),
-    names="State Province",
-    values="Tax Amount",
-    title="Monto del Impuesto Por Provincia del Estado",
-    hole=0.4
-)
-st.plotly_chart(fig_anillos)
-
-# Gráfico de líneas: Precio de Venta Por Año
-st.header("Precio de Venta Por Año")
-
-# Unir FactJuneSale con DimStockItem y DimDate
-fact_lineas = fact_filtrado.merge(dim_stockitem, on="Stock Item Key", how="left") \
-                           .merge(dim_date, left_on="Invoice Date Key", right_on="Date", how="left")
-
-# Filtrar datos válidos para el gráfico
-fact_lineas = fact_lineas.dropna(subset=["Calendar Year", "Recommended Retail Price"])
-
-# Crear el gráfico de líneas
-fig_lineas = px.line(
-    fact_lineas,
-    x="Calendar Year",  # Eje X: Año del calendario
-    y="Recommended Retail Price",  # Eje Y: Precio recomendado
-    title="Precio de Venta Por Año",
-    markers=True
-)
-
-# Mostrar el gráfico
-st.plotly_chart(fig_lineas)
 
 # KPIs en Tarjetas
 promedio_cantidad = fact["Quantity"].mean()
@@ -161,8 +96,79 @@ total_precio_unitario = fact["Unit Price"].sum()
 promedio_precio_unitario_por_cantidad = (fact["Unit Price"] * fact["Quantity"]).mean()
 total_precio_unitario_por_cantidad = (fact["Unit Price"] * fact["Quantity"]).sum()
 
-st.metric(label="Promedio de Cantidad", value=round(promedio_cantidad, 2))
-st.metric(label="Promedio del Precio Unitario", value=round(promedio_precio_unitario, 2))
-st.metric(label="Total de Precio Unitario", value=round(total_precio_unitario, 2))
-st.metric(label="Promedio de Precio Unitario por Cantidad", value=round(promedio_precio_unitario_por_cantidad, 2))
-st.metric(label="Total de Precio Unitario por Cantidad", value=round(total_precio_unitario_por_cantidad, 2))
+col1, col2, col3, col4, col5 = st.columns(5)
+col1.metric(label="Promedio de Cantidad", value=round(promedio_cantidad, 2))
+col2.metric(label="Promedio del Precio Unitario", value=round(promedio_precio_unitario, 2))
+col3.metric(label="Total de Precio Unitario", value=round(total_precio_unitario, 2))
+col4.metric(label="Promedio de Precio Unitario por Cantidad", value=round(promedio_precio_unitario_por_cantidad, 2))
+col5.metric(label="Total de Precio Unitario por Cantidad", value=round(total_precio_unitario_por_cantidad, 2))
+
+# Gráficos
+col1, col2 = st.columns(2)
+
+with col1:
+    st.header("Total de Tasa Impositiva Por Ciudad")
+    fig_burbujas = px.scatter(
+        fact_filtrado.merge(dim_city, on="City Key"),
+        x="City",
+        y="Tax Rate",
+        size="Tax Rate",
+        color="City",
+        title="Total de Tasa Impositiva Por Ciudad",
+        labels={"Tax Rate": "Tasa Impositiva", "City": "Ciudad"}
+    )
+    st.plotly_chart(fig_burbujas)
+
+with col2:
+    st.header("Total de Profit Por Ciudad")
+    fig_kpi = px.bar(
+        fact_filtrado.merge(dim_city, on="City Key"),
+        x="City",
+        y="Profit",
+        title="Total de Profit Por Ciudad",
+        labels={"Profit": "Profit", "City": "Ciudad"},
+        text="Profit",
+        color="City"
+    )
+    st.plotly_chart(fig_kpi)
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.header("Monto del Impuesto Por Provincia del Estado")
+    fig_anillos = px.pie(
+        fact_filtrado.merge(dim_city, on="City Key"),
+        names="State Province",
+        values="Tax Amount",
+        title="Monto del Impuesto Por Provincia del Estado",
+        hole=0.4
+    )
+    st.plotly_chart(fig_anillos)
+
+with col2:
+    st.header("Total de Precio Unitario por Mes en cada Provincia del Estado (Barras Horizontales)")
+
+    fact_barras = fact_filtrado.merge(dim_stockitem, on="Stock Item Key", how="left") \
+                               .merge(dim_date, left_on="Invoice Date Key", right_on="Date", how="left") \
+                               .merge(dim_city, on="City Key", how="left")
+
+    fact_barras_agrupado = fact_barras.groupby(["Month", "State Province"], as_index=False).agg({"Unit Price_x": "sum"})
+
+    fig_barras = px.bar(
+        fact_barras_agrupado,
+        y="Month",
+        x="Unit Price_x",
+        color="State Province",
+        title="Total de Precio Unitario por Mes en cada Provincia del Estado",
+        labels={"Month": "Mes", "Unit Price_x": "Suma de Unit Price"},
+        barmode="group",
+        text_auto=True
+    )
+
+    fig_barras.update_layout(
+        xaxis_title="Suma de Unit Price",
+        yaxis_title="Mes",
+        xaxis=dict(tickformat=",")
+    )
+
+    st.plotly_chart(fig_barras)
