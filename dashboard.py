@@ -85,6 +85,9 @@ fact_filtrado = fact[
     (fact["Invoice Date Key"].isin(dim_date[dim_date["Month"].isin(filtro_mes_fiscal)]["Date"]))
 ]
 
+# Verificar los estados presentes en los datos filtrados
+st.write("Estados presentes en los datos filtrados:", fact_filtrado.merge(dim_city, on="City Key")["State Province"].unique())
+
 # Título principal
 st.title("Análisis de Ventas")
 
