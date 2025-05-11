@@ -23,14 +23,12 @@ def cargar_archivo(ruta):
 @st.cache_data
 def cargar_datos():
     # Rutas de los archivos
-    base_path = os.path.dirname(__file__)  # Directorio actual del script
     rutas = {
-        "FactJuneSale": os.path.join(base_path, "FactJuneSale.xlsx"),
-        "DimCity": os.path.join(base_path, "DimCity.xlsx"),
-        "DimDate": os.path.join(base_path, "DimDate.csv"),
-        "DimStockItem": os.path.join(base_path, "DimStockItem.csv")
+        "FactJuneSale": "FactJuneSale.xlsx",
+        "DimCity": "DimCity.xlsx",
+        "DimDate": "DimDate.csv",
+        "DimStockItem": "DimStockItem.csv"
     }
-
     datos = {}
     for nombre, ruta in rutas.items():
         if not os.path.exists(ruta):
